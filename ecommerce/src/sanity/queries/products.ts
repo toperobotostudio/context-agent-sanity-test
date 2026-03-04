@@ -73,28 +73,36 @@ export const SORT_OPTIONS = [
  * Build a GROQ filter string from ProductFilters
  * Returns an array of filter conditions to be joined with &&
  */
-function buildProductFilterConditions(filters: ProductFiltersInput): string[] {
+interface FilterQueryResult {
+  conditions: string[]
+  params: Record<string, unknown>
+}
+
+function buildProductFilterConditions(filters: ProductFiltersInput): FilterQueryResult {
   const conditions: string[] = ['_type == "product"', 'defined(slug.current)']
+  const params: Record<string, unknown> = {}
 
   if (filters.category?.length) {
-    const slugs = filters.category.map((s) => `"${s}"`).join(', ')
-    conditions.push(`category->slug.current in [${slugs}]`)
+    conditions.push(`category->slug.current in $categorySlugs`)
+    params.categorySlugs = filters.category
   }
 
   if (filters.brand?.length) {
-    const slugs = filters.brand.map((s) => `"${s}"`).join(', ')
-    conditions.push(`brand->slug.current in [${slugs}]`)
+    conditions.push(`brand->slug.current in $brandSlugs`)
+    params.brandSlugs = filters.brand
   }
 
   if (filters.minPrice !== undefined) {
-    conditions.push(`price >= ${filters.minPrice}`)
+    conditions.push(`price >= $minPrice`)
+    params.minPrice = filters.minPrice
   }
 
   if (filters.maxPrice !== undefined) {
-    conditions.push(`price <= ${filters.maxPrice}`)
+    conditions.push(`price <= $maxPrice`)
+    params.maxPrice = filters.maxPrice
   }
 
-  return conditions
+  return {conditions, params}
 }
 
 /**
@@ -114,27 +122,38 @@ function buildProductSortClause(sort?: ProductFiltersInput['sort']): string {
   }
 }
 
+interface FilteredQuery {
+  query: string
+  params: Record<string, unknown>
+}
+
 /**
- * Build the complete filtered products query string
+ * Build the complete filtered products query with parameterized filters
  */
 export function buildFilteredProductsQuery(
   filters: ProductFiltersInput,
   pageSize: number = PAGE_SIZE,
-): string {
-  const conditions = buildProductFilterConditions(filters)
+): FilteredQuery {
+  const {conditions, params} = buildProductFilterConditions(filters)
   const sortClause = buildProductSortClause(filters.sort)
 
-  return /* groq */ `
-    *[${conditions.join(' && ')}] | ${sortClause} [($page - 1) * ${pageSize}...$page * ${pageSize}] {
-      ${productCardFragment}
-    }
-  `
+  return {
+    query: /* groq */ `
+      *[${conditions.join(' && ')}] | ${sortClause} [($page - 1) * ${pageSize}...$page * ${pageSize}] {
+        ${productCardFragment}
+      }
+    `,
+    params,
+  }
 }
 
 /**
- * Build the count query for filtered products
+ * Build the count query for filtered products with parameterized filters
  */
-export function buildFilteredProductsCountQuery(filters: ProductFiltersInput): string {
-  const conditions = buildProductFilterConditions(filters)
-  return /* groq */ `count(*[${conditions.join(' && ')}])`
+export function buildFilteredProductsCountQuery(filters: ProductFiltersInput): FilteredQuery {
+  const {conditions, params} = buildProductFilterConditions(filters)
+  return {
+    query: /* groq */ `count(*[${conditions.join(' && ')}])`,
+    params,
+  }
 }

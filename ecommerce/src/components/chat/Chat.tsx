@@ -181,7 +181,7 @@ function ChatInner(props: ChatProps) {
   // Scroll to the bottom of the messages when new messages are added
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({behavior: 'smooth'})
-  }, [messages])
+  }, [messages.length])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()

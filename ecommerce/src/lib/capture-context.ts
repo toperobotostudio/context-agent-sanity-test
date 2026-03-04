@@ -29,17 +29,18 @@ export function captureUserContext(): UserContext {
   }
 }
 
-/**
- * Captures page context for the agent as markdown.
- */
-export function capturePageContext() {
-  const turndown = new TurndownService({
+// Reusable TurndownService instance (configured once)
+let _turndown: TurndownService | null = null
+
+function getTurndown(): TurndownService {
+  if (_turndown) return _turndown
+
+  _turndown = new TurndownService({
     headingStyle: 'atx',
     bulletListMarker: '-',
   })
 
-  // Replace images with just alt text (no URLs)
-  turndown.addRule('images', {
+  _turndown.addRule('images', {
     filter: 'img',
     replacement: (_content, node) => {
       const alt = (node as HTMLImageElement).alt
@@ -47,12 +48,20 @@ export function capturePageContext() {
     },
   })
 
-  // Remove scripts, styles, svgs, videos
-  turndown.addRule('removeNoise', {
+  _turndown.addRule('removeNoise', {
     filter: (node) =>
       ['SCRIPT', 'STYLE', 'SVG', 'VIDEO', 'AUDIO', 'IFRAME', 'NOSCRIPT'].includes(node.nodeName),
     replacement: () => '',
   })
+
+  return _turndown
+}
+
+/**
+ * Captures page context for the agent as markdown.
+ */
+export function capturePageContext() {
+  const turndown = getTurndown()
 
   const main = document.querySelector('main') || document.body
   const clone = main.cloneNode(true) as Element

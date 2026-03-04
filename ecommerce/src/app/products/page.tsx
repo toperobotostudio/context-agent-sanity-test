@@ -54,8 +54,8 @@ export default async function ProductsPage({searchParams}: ProductsPageProps) {
 
   const [filterOptions, products, totalCount] = await Promise.all([
     client.fetch(FILTER_OPTIONS_QUERY),
-    client.fetch(productsQuery, {page: currentPage}),
-    client.fetch<number>(countQuery),
+    client.fetch(productsQuery.query, {...productsQuery.params, page: currentPage}),
+    client.fetch<number>(countQuery.query, countQuery.params),
   ])
 
   const totalPages = Math.ceil(totalCount / PAGE_SIZE)
