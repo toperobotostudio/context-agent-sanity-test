@@ -23,7 +23,9 @@
       "!hooks/use-mobile.ts",
       "!ecommerce",
       "!studio",
-      "!skills"
+      "!skills",
+      "!.agents",
+      "!.agent"
     ]
   },
   "linter": {
@@ -32,7 +34,8 @@
         "noExplicitAny": "off",
         "noUnknownAtRules": "off",
         "noConsole": "off",
-        "noBitwiseOperators": "off"
+        "noBitwiseOperators": "off",
+        "noArrayIndexKey": "off"
       },
       "style": {
         "noMagicNumbers": "off",
