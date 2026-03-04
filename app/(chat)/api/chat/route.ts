@@ -8,6 +8,7 @@ import {
   stepCountIs,
   streamText,
 } from "ai";
+import { createMCPClient } from "@ai-sdk/mcp";
 import { after } from "next/server";
 import { createResumableStreamContext } from "resumable-stream";
 import { auth, type UserType } from "@/app/(auth)/auth";
@@ -60,6 +61,9 @@ export async function POST(request: Request) {
   } catch (_) {
     return new ChatbotError("bad_request:api").toResponse();
   }
+
+  // Connect to Sanity Agent Context MCP (if configured)
+  let mcpClient: Awaited<ReturnType<typeof createMCPClient>> | null = null;
 
   try {
     const { id, message, messages, selectedChatModel, selectedVisibilityType } =
@@ -150,6 +154,20 @@ export async function POST(request: Request) {
 
     const modelMessages = await convertToModelMessages(uiMessages);
 
+    mcpClient = process.env.SANITY_CONTEXT_MCP_URL
+      ? await createMCPClient({
+          transport: {
+            type: "http",
+            url: process.env.SANITY_CONTEXT_MCP_URL,
+            headers: {
+              Authorization: `Bearer ${process.env.SANITY_API_READ_TOKEN}`,
+            },
+          },
+        })
+      : null;
+
+    const mcpTools = mcpClient ? await mcpClient.tools() : {};
+
     const stream = createUIMessageStream({
       originalMessages: isToolApprovalFlow ? uiMessages : undefined,
       execute: async ({ writer: dataStream }) => {
@@ -157,15 +175,10 @@ export async function POST(request: Request) {
           model: getLanguageModel(selectedChatModel),
           system: systemPrompt({ selectedChatModel, requestHints }),
           messages: modelMessages,
-          stopWhen: stepCountIs(5),
+          stopWhen: stepCountIs(10),
           experimental_activeTools: isReasoningModel
             ? []
-            : [
-                "getWeather",
-                "createDocument",
-                "updateDocument",
-                "requestSuggestions",
-              ],
+            : undefined,
           providerOptions: isReasoningModel
             ? {
                 anthropic: {
@@ -178,6 +191,7 @@ export async function POST(request: Request) {
             createDocument: createDocument({ session, dataStream }),
             updateDocument: updateDocument({ session, dataStream }),
             requestSuggestions: requestSuggestions({ session, dataStream }),
+            ...mcpTools,
           },
           experimental_telemetry: {
             isEnabled: isProductionEnvironment,
@@ -268,6 +282,7 @@ export async function POST(request: Request) {
       },
     });
   } catch (error) {
+    await mcpClient?.close();
     const vercelId = request.headers.get("x-vercel-id");
 
     if (error instanceof ChatbotError) {

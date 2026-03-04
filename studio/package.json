@@ -1,0 +1,21 @@
+{
+  "name": "ecommerce-studio",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "sanity dev",
+    "build": "sanity build",
+    "deploy": "sanity deploy"
+  },
+  "dependencies": {
+    "@sanity/agent-context": "^0.3.3",
+    "@sanity/vision": "^5.13.0",
+    "react": "^19",
+    "react-dom": "^19",
+    "sanity": "^5.13.0",
+    "styled-components": "^6.3.8"
+  },
+  "devDependencies": {
+    "typescript": "^5"
+  }
+}
