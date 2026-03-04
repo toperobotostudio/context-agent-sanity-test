@@ -1,10 +1,13 @@
 import Link from 'next/link'
 import {notFound} from 'next/navigation'
 import type {Metadata} from 'next/types'
+import {cache} from 'react'
 
 import {ProductDetails} from '@/components/product-details'
 import {client} from '@/sanity/lib/client'
 import {PRODUCT_QUERY, PRODUCT_SLUGS_QUERY} from '@/sanity/queries'
+
+const getProduct = cache((slug: string) => client.fetch(PRODUCT_QUERY, {slug}))
 
 interface Props {
   params: Promise<{slug: string}>
@@ -17,7 +20,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({params}: Props): Promise<Metadata> {
   const {slug} = await params
-  const product = await client.fetch(PRODUCT_QUERY, {slug})
+  const product = await getProduct(slug)
   if (!product) return {title: 'Product Not Found'}
   return {
     title: `${product.title} | Store`,
@@ -27,7 +30,7 @@ export async function generateMetadata({params}: Props): Promise<Metadata> {
 
 export default async function ProductPage({params}: Props) {
   const {slug} = await params
-  const product = await client.fetch(PRODUCT_QUERY, {slug})
+  const product = await getProduct(slug)
 
   if (!product) {
     notFound()

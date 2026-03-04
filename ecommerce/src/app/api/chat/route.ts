@@ -3,7 +3,18 @@ import {createMCPClient} from '@ai-sdk/mcp'
 import {convertToModelMessages, stepCountIs, streamText, type ToolSet, type UIMessage} from 'ai'
 import {z} from 'zod'
 
-import {CLIENT_TOOLS, productFiltersSchema, type UserContext} from '@/lib/client-tools'
+import {CLIENT_TOOLS, productFiltersSchema} from '@/lib/client-tools'
+
+const userContextSchema = z.object({
+  documentTitle: z.string().max(500),
+  documentDescription: z.string().max(1000).optional(),
+  documentLocation: z.string().max(500),
+})
+
+const requestBodySchema = z.object({
+  messages: z.array(z.any()).min(1),
+  userContext: userContextSchema,
+})
 
 /**
  * Client-side tools for capturing page context and controlling the UI.
@@ -63,7 +74,7 @@ The product schema has these key fields:
 `
 
 interface BuildSystemPromptParams {
-  userContext: UserContext
+  userContext: z.infer<typeof userContextSchema>
 }
 
 function buildSystemPrompt({userContext}: BuildSystemPromptParams): string {
@@ -108,10 +119,16 @@ Write product names only inside directives. If page context mentions product nam
 }
 
 export async function POST(req: Request) {
-  const {
-    messages,
-    userContext,
-  }: {messages: UIMessage[]; userContext: UserContext} = await req.json()
+  let body: z.infer<typeof requestBodySchema>
+
+  try {
+    const json = await req.json()
+    body = requestBodySchema.parse(json)
+  } catch {
+    return new Response('Invalid request body', {status: 400})
+  }
+
+  const {messages, userContext} = body
 
   if (!process.env.SANITY_CONTEXT_MCP_URL) {
     throw new Error('SANITY_CONTEXT_MCP_URL is not set')
