@@ -1,0 +1,44 @@
+{
+  "name": "ecommerce",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "^3.0.37",
+    "@ai-sdk/mcp": "^1.0.13",
+    "@ai-sdk/react": "^3.0.0",
+    "@radix-ui/react-select": "^2.2.6",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@sanity/agent-directives": "^0.0.10",
+    "@sanity/client": "^7.14.0",
+    "@sanity/image-url": "^2.0.0",
+    "ai": "^6.0.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "geist": "^1.7.0",
+    "html2canvas-pro": "^1.6.0",
+    "lucide-react": "^0.563.0",
+    "next": "^16.0.0",
+    "next-sanity": "^12.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-markdown": "^10.1.0",
+    "tailwind-merge": "^3.4.0",
+    "turndown": "^7.2.2",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/turndown": "^5.0.6",
+    "tailwindcss": "^4.0.0",
+    "typescript": "^5.7.0"
+  }
+}

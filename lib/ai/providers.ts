@@ -1,4 +1,5 @@
 import { gateway } from "@ai-sdk/gateway";
+import { google } from "@ai-sdk/google";
 import {
   customProvider,
   extractReasoningMiddleware,
@@ -7,6 +8,9 @@ import {
 import { isTestEnvironment } from "../constants";
 
 const THINKING_SUFFIX_REGEX = /-thinking$/;
+
+// Use AI Gateway when available, fall back to direct Google provider
+const useGateway = Boolean(process.env.AI_GATEWAY_API_KEY);
 
 export const myProvider = isTestEnvironment
   ? (() => {
@@ -39,25 +43,43 @@ export function getLanguageModel(modelId: string) {
   if (isReasoningModel) {
     const gatewayModelId = modelId.replace(THINKING_SUFFIX_REGEX, "");
 
+    if (useGateway) {
+      return wrapLanguageModel({
+        model: gateway.languageModel(gatewayModelId),
+        middleware: extractReasoningMiddleware({ tagName: "thinking" }),
+      });
+    }
     return wrapLanguageModel({
-      model: gateway.languageModel(gatewayModelId),
+      model: google(gatewayModelId),
       middleware: extractReasoningMiddleware({ tagName: "thinking" }),
     });
   }
 
-  return gateway.languageModel(modelId);
+  if (useGateway) {
+    return gateway.languageModel(modelId);
+  }
+  // Direct Google provider: strip "google/" prefix if present
+  const googleModelId = modelId.replace(/^google\//, "");
+  return google(googleModelId);
 }
 
 export function getTitleModel() {
   if (isTestEnvironment && myProvider) {
     return myProvider.languageModel("title-model");
   }
-  return gateway.languageModel("google/gemini-2.5-flash-lite");
+  if (useGateway) {
+    return gateway.languageModel("google/gemini-2.5-flash-lite");
+  }
+  return google("gemini-2.5-flash-lite");
 }
 
 export function getArtifactModel() {
   if (isTestEnvironment && myProvider) {
     return myProvider.languageModel("artifact-model");
   }
-  return gateway.languageModel("anthropic/claude-haiku-4.5");
+  if (useGateway) {
+    return gateway.languageModel("anthropic/claude-haiku-4.5");
+  }
+  // Fallback to Gemini when no gateway
+  return google("gemini-2.5-flash");
 }
